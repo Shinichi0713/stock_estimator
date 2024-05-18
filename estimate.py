@@ -34,25 +34,28 @@ def make_estimate(model):
     train_data_time=inout_data_time[:int(np.shape(inout_data_time)[0]*train_rate)].to(model.device)
     valid_data_time=inout_data_time[int(np.shape(inout_data_time)[0]*train_rate):].to(model.device)
     valid_data_time = valid_data_time.transpose(0, 1)
-    return valid_data_time
+    return valid_data_time, time_series_data[int(np.shape(inout_data_time)[0]*train_rate):].to_numpy()
 
 
 def predict():
     trans_estimator = model.TransformerTimeSeries()
     trans_estimator.eval()
     result=torch.Tensor(0)
-    actual=torch.Tensor(0)
-    valid_data_time = make_estimate(trans_estimator)
+    valid_data_time, wave_input = make_estimate(trans_estimator)
 
     with torch.no_grad():
         for i in range(0,len(valid_data_time)-1):
+            data_validate = {}
             input = torch.unsqueeze(valid_data_time[i].transpose(0,1), 2)
-            # print(input.shape)
-            output=trans_estimator(input)
-            result=torch.cat((result, output[-1].view(-1).cpu()),0)
-            # actual=torch.cat((actual,target[-1].view(-1).cpu()),0)
+            output = trans_estimator(input)
+            result = torch.cat((result, output[-1].view(-1).cpu()),0)
+        # numpyに変換
+        data_validate['predict'] = result.cpu().detach().numpy()
+        data_validate['actual'] = wave_input[0:result.shape[0]]
 
-    plt.plot(result,color='black',linewidth=1.0)
+    plt.plot(data_validate['predict'],color='red',linewidth=1.0, label='predict')
+    plt.plot(data_validate['actual'],color='blue',linewidth=1.0, label='actual')
+    plt.legend()
     plt.show()
 
 
